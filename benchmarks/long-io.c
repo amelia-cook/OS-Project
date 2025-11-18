@@ -14,10 +14,14 @@
 int
 main(int argc, char *argv[])
 {
-    int fd = open("pride-and-prejudice.txt", O_RDONLY);
-    char buf;
-    while (read(fd, buf, 1) != 0) {
-        printf("%c", buf);
+    for (int i = 0; i < 10; i++) {
+        int fd1 = open("pride-and-prejudice.txt", O_RDONLY);
+        char buf;
+        
+        while (read(fd1, &buf, sizeof(buf)) > 0) {
+            printf("%c", buf);
+        }
+        
+        close(fd1);
     }
-    close(fd);
 }
