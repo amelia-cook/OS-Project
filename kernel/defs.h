@@ -216,3 +216,8 @@ int             nettimer(void);
 void            virtio_net_init(void *);
 int             virtio_net_send(const void *data, int len);
 int             virtio_net_recv(void *data, int len);
+
+//timing function
+unsigned long getTime(void);
+unsigned long getCycles(void);
+void printprocmetrics(void)

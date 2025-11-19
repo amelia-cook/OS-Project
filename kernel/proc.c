@@ -123,6 +123,17 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  //init timing metrics 
+  p->creation_time = getTime();
+  p->first_run_time = 0;
+  p->total_run_time = 0;
+  p->last_scheduled = 0;
+  p->total_wait_time = 0;
+  p->completion_time = 0;
+  p->wait_start = 0;
+  p->context_switches = 0;
+  p->first_run = 0;
+
   return p;
 }
 
@@ -218,6 +229,9 @@ userinit(void)
 
   p->state = RUNNABLE;
 
+  // wait timing data
+  p->wait_start = getTime();
+
   release(&p->lock);
 }
 
@@ -283,6 +297,9 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  //wait timing data
+  np->wait_start = getTime();
+
   release(&np->lock);
 
   return pid;
@@ -324,6 +341,22 @@ exit(int status)
 
   if(p == initproc)
     panic("init exiting");
+
+  // completion timing 
+  p->completion_time = getTime();
+
+  // Print metrics for this process
+  uint64 turnaround = p->completion_time - p->creation_time;
+  uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
+  
+  printf("PID %d (%s) metrics:\n", p->pid, p->name);
+  printf("  Turnaround: %ld\n", turnaround);
+  printf("  Wait time: %ld\n", p->total_wait_time);
+  printf("  Response time: %ld\n", response);
+  printf("  Context switches: %d\n", p->context_switches);
+  printf("  CPU time: %ld\n", p->total_run_time);
+
+  printprocmetrics();
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
@@ -461,12 +494,34 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
+        // wait timing 
+        if(p->wait_start != 0){
+          p->total_wait_time += getTime() - p->wait_start;
+          p->wait_start = 0;
+        }
+
+        // reponse timing 
+        if(p->first_run == 0) {
+          p->first_run_time = getTime();
+          p->first_run = 1;
+        }
+
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        // scheduling timing 
+        p->last_scheduled = getTime();
+        p->context_switches++;
+
         swtch(&c->scheduler, &p->context);
+
+        // running timing 
+        if(c->proc != 0) {  // process still exists
+          p->total_run_time += getTime() - p->last_scheduled;
+        }
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -521,6 +576,10 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+  
+  // wait timing data
+  p->wait_start = getTime();
+
   sched();
   release(&p->lock);
 }
@@ -591,6 +650,9 @@ wakeup(void *chan)
     acquire(&p->lock);
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+
+      // wait timing data
+      p->wait_start = getTime();
     }
     release(&p->lock);
   }
@@ -605,6 +667,9 @@ wakeup1(struct proc *p)
     panic("wakeup1");
   if(p->chan == p && p->state == SLEEPING) {
     p->state = RUNNABLE;
+
+    // wait timing data
+    p->wait_start = getTime();
   }
 }
 
@@ -689,4 +754,49 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+
+
+//timing functions
+unsigned long getTime() { 
+  unsigned long time; 
+  asm volatile ("rdtime %0" : "=r" (time)); 
+  return time; 
+}
+
+unsigned long getCycles() { 
+  unsigned long cycles; 
+  asm volatile ("rdcycle %0" : "=r" (cycles)); 
+  return cycles; 
+}
+
+void
+printprocmetrics(void)
+{
+  struct proc *p;
+  uint64 current_time = getTime();
+  
+  printf("\n=== Process Metrics ===\n");
+  printf("PID\tName\t\tTurnaround\tWait\t\tResponse\tCtx Sw\tCPU%%\n");
+  
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state != UNUSED && p->state != ZOMBIE) {
+      uint64 turnaround = current_time - p->creation_time;
+      uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
+      uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
+      
+      printf("%d\t%-12s\t%ld\t%ld\t%ld\t%d\t%ld%%\n",
+             p->pid,
+             p->name,
+             turnaround,
+             p->total_wait_time,
+             response,
+             p->context_switches,
+             cpu_percent);
+    }
+    release(&p->lock);
+  }
+  printf("======================\n\n");
 }
