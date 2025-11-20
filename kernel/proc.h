@@ -1,3 +1,5 @@
+extern uint64 global_vtime;
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -104,4 +106,12 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint64 trap_va;              // trapframe va for threads
+
+  // EEVDF scheduling fields
+  uint64 weight;      // scheduling weight
+  uint64 vstart;      // virtual start time
+  uint64 vfinish;     // virtual deadline
+  uint64 slice;       // time slice
+  uint64 eligible;    // eligibility time
+  uint64 runtime;     // used runtime in current slice
 };

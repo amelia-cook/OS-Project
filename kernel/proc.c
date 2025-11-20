@@ -23,6 +23,8 @@ static void wakeup1(struct proc *chan);
 
 extern char trampoline[]; // trampoline.S
 
+uint64 global_vtime = 0;
+
 void
 procinit(void)
 {
