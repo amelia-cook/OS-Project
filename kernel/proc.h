@@ -104,4 +104,6 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint64 trap_va;              // trapframe va for threads
+
+  uint64 arrival;              // FIFO timestamp (monotonic increasing)
 };

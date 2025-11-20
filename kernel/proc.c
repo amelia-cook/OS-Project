@@ -23,6 +23,8 @@ static void wakeup1(struct proc *chan);
 
 extern char trampoline[]; // trampoline.S
 
+uint64 arrival_counter = 0;
+
 void
 procinit(void)
 {
@@ -218,6 +220,9 @@ userinit(void)
 
   p->state = RUNNABLE;
 
+  //FIFO arrival time
+  p->arrival = arrival_counter++;  // record join order
+
   release(&p->lock);
 }
 
@@ -282,6 +287,9 @@ fork(void)
   pid = np->pid;
 
   np->state = RUNNABLE;
+
+  //FIFO arrival time
+  np->arrival = arrival_counter++;  // record join order
 
   release(&np->lock);
 
@@ -434,13 +442,15 @@ wait(uint64 addr)
   }
 }
 
-// Per-CPU process scheduler.
+// Per-CPU process scheduler. (round-robin)
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
 //  - choose a process to run.
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+
+/*
 void
 scheduler(void)
 {
@@ -486,6 +496,57 @@ scheduler(void)
     }
   }
 }
+
+*/
+//FIFO scheduler
+void 
+scheduler(void)
+{
+  struct proc *p, *chosen;
+  struct cpu *c = mycpu();
+
+  for(;;){
+    // Avoid deadlock by giving devices a chance to interrupt.
+    intr_on();  // interrupts enabled
+    // Run the for loop with interrupts off to avoid
+    // a race between an interrupt and WFI, which would
+    // cause a lost wakeup.
+    intr_off(); //interrupts disabled
+
+    chosen = 0;
+
+    // Find the RUNNABLE process with earliest arrival
+    for(p = proc; p < &proc[NPROC]; p++){
+      if(p->state == RUNNABLE){
+        if(chosen == 0 || p->arrival < chosen->arrival)
+          chosen = p;
+      }
+    }
+
+    if(chosen){
+      // Acquire the chosen proc's lock before running it, following xv6 lock
+      // conventions. The process (or forkret) may expect its lock to be held
+      // on first scheduling; failing to hold it leads to release() panics.
+      acquire(&chosen->lock);
+      if(chosen->state == RUNNABLE) {
+        chosen->state = RUNNING;
+        c->proc = chosen;
+
+        swtch(&c->scheduler, &chosen->context);
+
+        c->proc = 0;
+      }
+      // The process (or its code) is responsible for releasing its lock when
+      // appropriate (e.g., forkret releases p->lock). If we still hold it
+      // here (e.g., if we didn't run it), release it to avoid deadlock.
+      if(holding(&chosen->lock))
+        release(&chosen->lock);
+    }
+  }
+}
+
+
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
@@ -591,6 +652,7 @@ wakeup(void *chan)
     acquire(&p->lock);
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+      p->arrival = arrival_counter++;  // record join order
     }
     release(&p->lock);
   }
