@@ -111,9 +111,7 @@ $U/_fifotest: $U/fifotest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_fifotest $U/fifotest.o $(ULIB)
 	$(OBJDUMP) -S $U/_fifotest > $U/fifotest.asm
 
-$U/_simplefifotest: $U/simplefifotest.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_simplefifotest $U/simplefifotest.o $(ULIB)
-	$(OBJDUMP) -S $U/_simplefifotest > $U/simplefifotest.asm
+
 
 $U/_alarmtest: $U/alarmtest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -T $U/alarmtest.ld -o $@ $^
@@ -138,7 +136,6 @@ UPROGS=\
 	$U/_echo\
 	$U/_forktest\
 	$U/_fifotest\
-	$U/_simplefifotest\
 	$U/_grep\
 	$U/_init\
 	$U/_kill\
@@ -238,4 +235,3 @@ gradescope-all:
 	zip submission.zip Makefile user/usys.pl user/*.c user/*.h kernel/*.h kernel/*.c
 
 .PHONY: qemu qemu-gdb gdb qemu-trace clean gradescope
-
