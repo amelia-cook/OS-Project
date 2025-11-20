@@ -342,6 +342,11 @@ exit(int status)
   if(p == initproc)
     panic("init exiting");
 
+  // update run timing
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
+
   // completion timing 
   p->completion_time = getTime();
 
@@ -354,12 +359,12 @@ exit(int status)
   printf("\n ***Process Exit Metrics***\n");
   printf("PID: %d\n", p->pid);
   printf("Name: %s\n", p->name);
-  printf("Turnaround Time: %ld ticks\n", turnaround);
-  printf("Waiting Time: %ld ticks\n", p->total_wait_time);
-  printf("Response Time: %ld ticks\n", response);
-  printf("Total Run Time: %ld ticks\n", p->total_run_time);
+  printf("Turnaround Time: %d ticks\n", (int)turnaround);
+  printf("Waiting Time: %d ticks\n", (int)p->total_wait_time);
+  printf("Response Time: %d ticks\n", (int)response);
+  printf("Total Run Time: %d ticks\n", (int)p->total_run_time); 
   printf("Context Switches: %d\n", p->context_switches);
-  printf("CPU Share: %ld%%\n", cpu_percent);
+  printf("CPU Share: %d%%\n", (int)cpu_percent);
 
   // printprocmetrics();
 
@@ -524,7 +529,7 @@ scheduler(void)
         swtch(&c->scheduler, &p->context);
 
         // running timing 
-        if(c->proc != 0) {  // process still exists
+        if(p->state != UNUSED) {  // Check if process still exists
           p->total_run_time += getTime() - p->last_scheduled;
         }
 
@@ -580,6 +585,12 @@ yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
+
+  // update run timing
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
+
   p->state = RUNNABLE;
   
   // wait timing data
@@ -626,6 +637,11 @@ sleep(void *chan, struct spinlock *lk)
   if(lk != &p->lock){  //DOC: sleeplock0
     acquire(&p->lock);  //DOC: sleeplock1
     release(lk);
+  }
+
+  //update run timing
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
   }
 
   // Go to sleep.
