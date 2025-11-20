@@ -104,4 +104,14 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint64 trap_va;              // trapframe va for threads
+
+  /*------ Declaration of EEVDF-related params -----*/
+  uint64 vruntime;        // virtual runtime
+  uint64 vdeadline;       // virtual deadline
+  uint64  lag;             // actual_runtime - ideal_runtime
+  int    weight;          // can be used for priority check
+  uint64 slice;           // time slice
+  uint64 last_start_time; // last start time when scheduled
+  uint64 actual_runtime;  // actual runtime (for calculating lag)
+
 };

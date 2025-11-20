@@ -23,6 +23,11 @@ static void wakeup1(struct proc *chan);
 
 extern char trampoline[]; // trampoline.S
 
+/*----- Initialization of EEVDF global parameters ----- */
+uint64 min_vruntime = 0;      // minimum virtual runtime among all RUNNABLE processes
+int    default_weight = 1024; // default weight for processes
+uint64 default_slice  = 10;   // default time slice, can be adjusted later
+
 void
 procinit(void)
 {
@@ -117,6 +122,15 @@ found:
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   p->trap_va = TRAPFRAME;
+
+  // Initialize EEVDF-related parameters
+  p->vruntime        = min_vruntime; //start new process at current minimum vruntime
+  p->vdeadline       = 0;              // should be computed before scheduling (vruntime + slice/weight)
+  p->lag             = 0;
+  p->weight          = default_weight; // all processes share the same weight for now
+  p->slice           = default_slice;
+  p->last_start_time = 0;         
+  p->actual_runtime  = 0;       
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -278,6 +292,17 @@ fork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+  
+  /*-----EEVDF: inherit scheduling parameters from parent-----*/
+  // 1. All processes share the same weight and slice for now;
+  // 2. The child starts with the same vruntime as its parent.
+  np->vruntime        = p->vruntime;
+  np->vdeadline       = 0;   // be computed before scheduling
+  np->lag             = 0;   // no lag at fork time
+  np->weight          = p->weight;
+  np->slice           = p->slice;
+  np->last_start_time = 0;   // not started yet
+  np->actual_runtime  = 0;   // reset actual runtime
 
   pid = np->pid;
 
