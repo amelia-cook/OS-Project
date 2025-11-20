@@ -348,15 +348,20 @@ exit(int status)
   // Print metrics for this process
   uint64 turnaround = p->completion_time - p->creation_time;
   uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
+  uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
   
-  printf("PID %d (%s) metrics:\n", p->pid, p->name);
-  printf("  Turnaround: %ld\n", turnaround);
-  printf("  Wait time: %ld\n", p->total_wait_time);
-  printf("  Response time: %ld\n", response);
-  printf("  Context switches: %d\n", p->context_switches);
-  printf("  CPU time: %ld\n", p->total_run_time);
+  // Print metrics for this process
+  printf("\n ***Process Exit Metrics***\n");
+  printf("PID: %d\n", p->pid);
+  printf("Name: %s\n", p->name);
+  printf("Turnaround Time: %ld ticks\n", turnaround);
+  printf("Waiting Time: %ld ticks\n", p->total_wait_time);
+  printf("Response Time: %ld ticks\n", response);
+  printf("Total Run Time: %ld ticks\n", p->total_run_time);
+  printf("Context Switches: %d\n", p->context_switches);
+  printf("CPU Share: %ld%%\n", cpu_percent);
 
-  printprocmetrics();
+  // printprocmetrics();
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
@@ -769,34 +774,4 @@ unsigned long getCycles() {
   unsigned long cycles; 
   asm volatile ("rdcycle %0" : "=r" (cycles)); 
   return cycles; 
-}
-
-void
-printprocmetrics(void)
-{
-  struct proc *p;
-  uint64 current_time = getTime();
-  
-  printf("\n=== Process Metrics ===\n");
-  printf("PID\tName\t\tTurnaround\tWait\t\tResponse\tCtx Sw\tCPU%%\n");
-  
-  for(p = proc; p < &proc[NPROC]; p++){
-    acquire(&p->lock);
-    if(p->state != UNUSED && p->state != ZOMBIE) {
-      uint64 turnaround = current_time - p->creation_time;
-      uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
-      uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
-      
-      printf("%d\t%-12s\t%ld\t%ld\t%ld\t%d\t%ld%%\n",
-             p->pid,
-             p->name,
-             turnaround,
-             p->total_wait_time,
-             response,
-             p->context_switches,
-             cpu_percent);
-    }
-    release(&p->lock);
-  }
-  printf("======================\n\n");
 }
