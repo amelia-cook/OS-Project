@@ -107,6 +107,14 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o $U/umalloc.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
+$U/_fifotest: $U/fifotest.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_fifotest $U/fifotest.o $(ULIB)
+	$(OBJDUMP) -S $U/_fifotest > $U/fifotest.asm
+
+$U/_simplefifotest: $U/simplefifotest.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_simplefifotest $U/simplefifotest.o $(ULIB)
+	$(OBJDUMP) -S $U/_simplefifotest > $U/simplefifotest.asm
+
 $U/_alarmtest: $U/alarmtest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -T $U/alarmtest.ld -o $@ $^
 	$(OBJDUMP) -S $U/_alarmtest > $U/alarmtest.asm
@@ -152,10 +160,9 @@ UPROGS=\
 	# $U/_threadtest\
 	# $U/_symlinktest\
 	# $U/_largefiletest\
-	
 
-fs.img: mkfs/mkfs README user/xargstest.sh $(UPROGS)
-	mkfs/mkfs fs.img README user/xargstest.sh $(UPROGS)
+fs.img: mkfs/mkfs README.md user/xargstest.sh $(UPROGS)
+	mkfs/mkfs fs.img README.md user/xargstest.sh $(UPROGS)
 
 -include kernel/*.d user/*.d
 
