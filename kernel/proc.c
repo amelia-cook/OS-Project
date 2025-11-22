@@ -841,7 +841,7 @@ sleep(void *chan, struct spinlock *lk)
 
   // EEVDF: update vruntime before sleeping
   eevdf_on_run_end(p);
-  
+
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
@@ -869,6 +869,9 @@ wakeup(void *chan)
     acquire(&p->lock);
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+      
+      // EEVDF: update virtual deadline upon wakeup and lag will be computed next scheduler tick
+      eevdf_update_deadline(p);
 
       // TIMING DATA - wait timing data
       p->wait_start = getTime();
