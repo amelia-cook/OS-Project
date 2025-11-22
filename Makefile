@@ -157,10 +157,10 @@ UPROGS=\
 	$U/_alloctest\
 	$U/_specialtest\
 	$U/_umalloc\
-	$U/_short_io\
-	$U/_long_io\
-	$U/_short_cpu\
-	$U/_long_cpu\
+	$U/_bench_short_io\
+	$U/_bench_long_io\
+	$U/_bench_short_cpu\
+	$U/_bench_long_cpu\
 	# $U/_threadtest\
 	# $U/_symlinktest\
 	# $U/_largefiletest\

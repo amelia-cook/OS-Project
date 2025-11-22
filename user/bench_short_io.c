@@ -15,7 +15,7 @@ int
 main(int argc, char *argv[])
 {
     for (int i = 0; i < 5; i++) {
-        int fd1 = open("peter-pan.txt", O_RDONLY);
+        int fd1 = open("peter-pan-small.txt", O_RDONLY);
         char buf;
         
         while (read(fd1, &buf, sizeof(buf)) > 0) {
@@ -24,5 +24,5 @@ main(int argc, char *argv[])
         
         close(fd1);
     }
-    return 0;
+    exit(0);
 }
