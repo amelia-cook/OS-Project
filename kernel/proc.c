@@ -137,6 +137,17 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // TIMING DATA - init timing metrics 
+  p->creation_time = getTime();
+  p->first_run_time = 0;
+  p->total_run_time = 0;
+  p->last_scheduled = 0;
+  p->total_wait_time = 0;
+  p->completion_time = 0;
+  p->wait_start = 0;
+  p->context_switches = 0;
+  p->first_run = 0;
+
   return p;
 }
 
@@ -232,6 +243,9 @@ userinit(void)
 
   p->state = RUNNABLE;
 
+  // TIMING DATA - wait timing data
+  p->wait_start = getTime();
+
   release(&p->lock);
 }
 
@@ -308,6 +322,9 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  // TIMING DATA - wait timing data
+  np->wait_start = getTime();
+
   release(&np->lock);
 
   return pid;
@@ -349,6 +366,14 @@ exit(int status)
 
   if(p == initproc)
     panic("init exiting");
+
+  // TIMING DATA - update run timing
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
+
+  // TIMING DATA - completion timing 
+  p->completion_time = getTime();
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
@@ -486,11 +511,28 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
+        // TIMING DATA - wait timing 
+        if(p->wait_start != 0){
+          p->total_wait_time += getTime() - p->wait_start;
+          p->wait_start = 0;
+        }
+
+        // TIMING DATA - reponse timing 
+        if(p->first_run == 0) {
+          p->first_run_time = getTime();
+          p->first_run = 1;
+        }
+
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        // TIMING DATA - scheduling timing 
+        p->last_scheduled = getTime();
+        p->context_switches++;
+
         swtch(&c->scheduler, &p->context);
 
         // Process is done running for now.
@@ -546,6 +588,10 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+
+  // TIMING DATA - wait timing data
+  p->wait_start = getTime();
+
   sched();
   release(&p->lock);
 }
@@ -616,6 +662,9 @@ wakeup(void *chan)
     acquire(&p->lock);
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+
+      // TIMING DATA - wait timing data
+      p->wait_start = getTime();
     }
     release(&p->lock);
   }
@@ -630,6 +679,9 @@ wakeup1(struct proc *p)
     panic("wakeup1");
   if(p->chan == p && p->state == SLEEPING) {
     p->state = RUNNABLE;
+
+    // TIMING DATA - wait timing data
+    p->wait_start = getTime();
   }
 }
 
@@ -714,4 +766,17 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// TIMING DATA - timing functions
+unsigned long getTime() { 
+  unsigned long time; 
+  asm volatile ("rdtime %0" : "=r" (time)); 
+  return time; 
+}
+
+unsigned long getCycles() { 
+  unsigned long cycles; 
+  asm volatile ("rdcycle %0" : "=r" (cycles)); 
+  return cycles; 
 }
