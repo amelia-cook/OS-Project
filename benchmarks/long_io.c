@@ -24,4 +24,6 @@ main(int argc, char *argv[])
         
         close(fd1);
     }
+    
+    return 0;
 }
