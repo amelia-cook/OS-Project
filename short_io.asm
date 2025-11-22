@@ -19,8 +19,8 @@ main(int argc, char *argv[])
    a:	ec4e                	sd	s3,24(sp)
    c:	e852                	sd	s4,16(sp)
    e:	0080                	addi	s0,sp,64
-  10:	49bd                	li	s3,15
-    for (int i = 0; i < 15; i++) {
+  10:	4995                	li	s3,5
+    for (int i = 0; i < 5; i++) {
         int fd1 = open("peter-pan-small.txt", O_RDONLY);
   12:	00000a17          	auipc	s4,0x0
   16:	7f6a0a13          	addi	s4,s4,2038 # 808 <malloc+0xe4>
@@ -48,7 +48,7 @@ main(int argc, char *argv[])
   46:	8526                	mv	a0,s1
   48:	00000097          	auipc	ra,0x0
   4c:	2be080e7          	jalr	702(ra) # 306 <close>
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < 5; i++) {
   50:	39fd                	addiw	s3,s3,-1
   52:	00098a63          	beqz	s3,66 <main+0x66>
         int fd1 = open("peter-pan-small.txt", O_RDONLY);

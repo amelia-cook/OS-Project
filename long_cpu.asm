@@ -5,8 +5,8 @@ user/_long_cpu:     file format elf64-littleriscv
 Disassembly of section .text:
 
 0000000000000000 <getTime>:
-#include "../kernel/stat.h"
-#include "../user/user.h"
+#include "kernel/stat.h"
+#include "user/user.h"
 
 //10 MHz timer.
 unsigned long getTime(void)

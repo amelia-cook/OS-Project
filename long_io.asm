@@ -5,7 +5,7 @@ user/_long_io:     file format elf64-littleriscv
 Disassembly of section .text:
 
 0000000000000000 <main>:
-#include "../kernel/riscv.h"
+#include "kernel/riscv.h"
 
 
 int
