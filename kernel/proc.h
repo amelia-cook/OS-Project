@@ -1,3 +1,11 @@
+// EEVDF niceness configuration.
+#define NICE_MIN    (-20)
+#define NICE_MAX    19
+#define NICE_WIDTH  (NICE_MAX - NICE_MIN + 1)
+#define NICE_0_INDEX   (-NICE_MIN)      // 20
+#define NICE_0_WEIGHT  1024             // weight for nice 0
+
+extern const int sched_prio_to_weight[NICE_WIDTH];
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -113,6 +121,8 @@ struct proc {
   uint64 slice;           // time slice
   uint64 last_start_time; // last start time when scheduled
   uint64 actual_runtime;  // actual runtime (for calculating lag)
+  
+  int     nice;             // static priority, range [-20, 19]
 
   // TIMING DATA - timing metrics 
   uint64 creation_time; // when process was created

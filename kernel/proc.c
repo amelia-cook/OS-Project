@@ -9,6 +9,8 @@
 #include "proc.h"
 #include "defs.h"
 
+extern uint ticks;  // from trap.c
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -23,9 +25,186 @@ static void wakeup1(struct proc *chan);
 
 extern char trampoline[]; // trampoline.S
 
+// Map "nice" range [-20, 19] to weights 
+const int sched_prio_to_weight[40] = {
+  /* -20 */ 88761, 71755, 56483, 46273, 36291,
+  /* -15 */ 29154, 23254, 18705, 14949, 11916,
+  /* -10 */  9548,  7620,  6100,  4904,  3906,
+  /*  -5 */  3121,  2501,  1991,  1586,  1277,
+  /*   0 */  1024,   820,   655,   526,   423,
+  /*   5 */   335,   272,   215,   172,   137,
+  /*  10 */   110,    87,    70,    56,    45,
+  /*  15 */    36,    29,    23,    18,    15,
+};
+
+// Compute how much virtual runtime to add for a given
+// real execution time delta in ticks
+static inline uint64
+eevdf_calc_delta_vruntime(uint64 delta_exec, struct proc *p)
+{
+  if(delta_exec == 0)
+    return 0;
+
+  int w = p->weight;
+  if(w <= 0)
+    w = NICE_0_WEIGHT;
+
+  // vruntime += delta * NICE_0_WEIGHT / weight
+  return delta_exec * (uint64)NICE_0_WEIGHT / (uint64)w;
+}
+
+static inline void
+eevdf_update_deadline(struct proc *p)
+{
+  int w = p->weight;
+  if(w <= 0)
+    w = NICE_0_WEIGHT;
+
+  p->vdeadline = p->vruntime + p->slice / (uint64)w;
+}
+
+// Called right before the process is scheduled on the CPU.
+static void
+eevdf_on_run_start(struct proc *p)
+{
+  p->last_start_time = ticks;  // real time in timer ticks
+}
+
+// Called right after the process stops running (yields, sleeps, exits).
+static void
+eevdf_on_run_end(struct proc *p)
+{
+  uint64 now   = ticks;
+  uint64 delta = now - p->last_start_time;
+  if(delta == 0)
+    return;
+
+  // Real CPU time this process just used
+  p->actual_runtime += delta;
+
+  // Update virtual runtime using weight
+  uint64 virt_delta = eevdf_calc_delta_vruntime(delta, p);
+  p->vruntime += virt_delta;
+
+  eevdf_update_deadline(p);
+}
+
+// Compute weighted average vruntime V using RUNNABLE/RUNNING tasks.
+static uint64
+eevdf_compute_avg_vruntime(void)
+{
+  uint64 min_vr = (uint64)-1;
+  uint64 sum_w  = 0;
+  uint64 sum_weighted = 0;
+  struct proc *p;
+
+  // First pass: find minimum vruntime among active tasks.
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state == RUNNABLE || p->state == RUNNING){
+      if(min_vr == (uint64)-1 || p->vruntime < min_vr)
+        min_vr = p->vruntime;
+    }
+  }
+
+  if(min_vr == (uint64)-1)
+    return 0;  // no active tasks
+
+  //Second pass: compute weighted offsets from min_vr.
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state == RUNNABLE || p->state == RUNNING){
+      uint64 w = (p->weight > 0) ? (uint64)p->weight : (uint64)NICE_0_WEIGHT;
+      sum_w       += w;
+      sum_weighted += (p->vruntime - min_vr) * w;
+    }
+  }
+
+  if(sum_w == 0)
+    return min_vr;
+
+  uint64 offset = sum_weighted / sum_w;
+
+  //Keep global minimum vruntime updated for new tasks.
+  min_vruntime = min_vr;
+
+  return min_vr + offset;
+}
+
+// Update lag for all active tasks
+// lag_i = w_i * (V - v_i)
+// Positive lag: process is behind and should be picked
+static void
+eevdf_update_lag_all(void)
+{
+  uint64 V = eevdf_compute_avg_vruntime();
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state == RUNNABLE || p->state == RUNNING){
+      int diff = (int)V - (int)p->vruntime;
+      int w    = (p->weight > 0) ? p->weight : NICE_0_WEIGHT;
+      p->lag     = diff * w;
+    } else {
+      p->lag = 0;
+    }
+  }
+}
+
+// Pick the RUNNABLE process to run next according to EEVD
+// Only tasks with lag >= 0 are eligible to run, 
+// among them we pick the one with the earliest virtual deadline.
+// If no task has lag >= 0, we fall back to earliest deadline.
+static struct proc *
+pick_eevdf_proc(void)
+{
+  struct proc *p;
+  struct proc *best = 0;
+
+  //Only consider tasks with positive lag (eligible).
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+
+    if(p->lag < 0)
+      continue;
+
+    if(best == 0 || p->vdeadline < best->vdeadline)
+      best = p;
+  }
+
+  if(best != 0)
+    return best;
+
+  //Ignore lag, just choose earliest deadline RUNNABLE task.
+  for(p = proc; p < &proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+    if(best == 0 || p->vdeadline < best->vdeadline)
+      best = p;
+  }
+
+  return best;
+}
+
+static inline int
+nice_to_index(int nice)
+{
+  int idx = nice - NICE_MIN;
+  if(idx < 0)
+    idx = 0;
+  if(idx >= NICE_WIDTH)
+    idx = NICE_WIDTH - 1;
+  return idx;
+}
+
+static inline int
+nice_to_weight(int nice)
+{
+  return sched_prio_to_weight[nice_to_index(nice)];
+}
+
 /*----- Initialization of EEVDF global parameters ----- */
 uint64 min_vruntime = 0;      // minimum virtual runtime among all RUNNABLE processes
-int    default_weight = 1024; // default weight for processes
+int    default_weight = NICE_0_WEIGHT; // default weight for processes
 uint64 default_slice  = 10;   // default time slice, can be adjusted later
 
 void
@@ -124,15 +303,21 @@ found:
   p->trap_va = TRAPFRAME;
 
   // Initialize EEVDF-related parameters
+  p->nice            = 0;
+  p->weight          = nice_to_weight(p->nice);
+
   p->vruntime = min_vruntime; //start new process at current minimum vruntime
-  p->vdeadline = p->vruntime + (default_slice * default_weight) / default_weight;; // should be computed before scheduling (vruntime + slice/weight)
+  //p->vdeadline = p->vruntime + (default_slice * default_weight) / default_weight;; // should be computed before scheduling (vruntime + slice/weight)
+  p->vdeadline       = 0;            // updated in line 171
   p->lag = 0;
   
-  p->weight = default_weight; // all processes share the same weight for now
   p->slice = default_slice;
 
   p->last_start_time = 0;
   p->actual_runtime  = 0;
+
+  eevdf_update_deadline(p);
+
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -312,6 +497,8 @@ fork(void)
   /*-----EEVDF: inherit scheduling parameters from parent-----*/
   // 1. All processes share the same weight and slice for now;
   // 2. The child starts with the same vruntime as its parent.
+  np->nice            = p->nice;
+
   np->vruntime        = p->vruntime;
   np->vdeadline       = 0;   // be computed before scheduling
   np->lag             = 0;   // no lag at fork time
@@ -319,6 +506,7 @@ fork(void)
   np->slice           = p->slice;
   np->last_start_time = 0;   // not started yet
   np->actual_runtime  = 0;   // reset actual runtime
+  eevdf_update_deadline(np);
 
   pid = np->pid;
 
