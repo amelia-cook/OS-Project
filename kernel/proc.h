@@ -1,4 +1,14 @@
+
 extern uint64 global_vtime;
+
+// EEVDF niceness configuration.
+#define NICE_MIN    (-20)
+#define NICE_MAX    19
+#define NICE_WIDTH  (NICE_MAX - NICE_MIN + 1)
+#define NICE_0_INDEX   (-NICE_MIN)      // 20
+#define NICE_0_WEIGHT  1024             // weight for nice 0
+
+extern const int sched_prio_to_weight[NICE_WIDTH];
 
 // Saved registers for kernel context switches.
 struct context {
@@ -107,11 +117,27 @@ struct proc {
   char name[16];               // Process name (debugging)
   uint64 trap_va;              // trapframe va for threads
 
-  // EEVDF scheduling fields
-  uint64 weight;      // scheduling weight
-  uint64 vstart;      // virtual start time
-  uint64 vfinish;     // virtual deadline
-  uint64 slice;       // time slice
-  uint64 eligible;    // eligibility time
-  uint64 runtime;     // used runtime in current slice
+
+  /*------ Declaration of EEVDF-related params -----*/
+  uint64 vruntime;        // virtual runtime
+  uint64 vdeadline;       // virtual deadline
+  uint64  lag;             // actual_runtime - ideal_runtime
+  int    weight;          // can be used for priority check
+  uint64 slice;           // time slice
+  uint64 last_start_time; // last start time when scheduled
+  uint64 actual_runtime;  // actual runtime (for calculating lag)
+  
+  int     nice;             // static priority, range [-20, 19]
+
+  // TIMING DATA - timing metrics 
+  uint64 creation_time; // when process was created
+  uint64 first_run_time; // when process first got CPU (for response time)
+  uint64 total_run_time; // accumulated CPU time
+  uint64 last_scheduled; // last time scheduled
+  uint64 total_wait_time; // time spent waiting in RUNNABLE state
+  uint64 completion_time; // when process exits
+  uint64 wait_start; // when current wait period started
+  uint context_switches; // number of context switches
+  int first_run; // check if process has been run yet
+
 };
