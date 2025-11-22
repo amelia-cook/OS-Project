@@ -25,9 +25,7 @@ static void wakeup1(struct proc *chan);
 
 extern char trampoline[]; // trampoline.S
 
-<<<<<<< HEAD
-uint64 global_vtime = 0;
-=======
+
 // Map "nice" range [-20, 19] to weights 
 const int sched_prio_to_weight[40] = {
   /* -20 */ 88761, 71755, 56483, 46273, 36291,
@@ -209,7 +207,7 @@ nice_to_weight(int nice)
 uint64 min_vruntime = 0;      // minimum virtual runtime among all RUNNABLE processes
 int    default_weight = NICE_0_WEIGHT; // default weight for processes
 uint64 default_slice  = 10;   // default time slice, can be adjusted later
->>>>>>> fd100916d3d583398abef7831c9d82f2420d9aa1
+
 
 void
 procinit(void)
@@ -716,51 +714,41 @@ scheduler(void)
     // a race between an interrupt and WFI, which would
     // cause a lost wakeup.
     intr_off();
+    // Update lag for all RUUNABLE/RUNNING processes
+    eevdf_update_lag_all();
+    p = pick_eevdf_proc();
 
-    int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // TIMING DATA - wait timing 
-        if(p->wait_start != 0){
-          p->total_wait_time += getTime() - p->wait_start;
-          p->wait_start = 0;
-        }
-
-        // TIMING DATA - reponse timing 
-        if(p->first_run == 0) {
-          p->first_run_time = getTime();
-          p->first_run = 1;
-        }
-
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-
-        // TIMING DATA - scheduling timing 
-        p->last_scheduled = getTime();
-        p->context_switches++;
-
-        swtch(&c->scheduler, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-
-        found = 1;
-      }
-
-      // ensure that release() doesn't enable interrupts.
-      // again to avoid a race between interrupt and WFI.
-      c->intena = 0;
-
-      release(&p->lock);
-    }
-    if(found == 0){
+    if (p == 0){
+      // No RUNNABLE process found
       asm volatile("wfi");
+      continue;
     }
+
+    acquire(&p->lock);
+    if(p->state != RUNNABLE) {
+      release(&p->lock);
+      continue;
+    }
+
+    p->state = RUNNING;
+    c->proc = p;
+
+    // EEVDF: process is starting to run, updatate start time
+    eevdf_on_run_start(p);
+
+    swtch(&c->scheduler, &p->context);
+
+    // Process is no longer running for now, compute cruntime progress
+    eevdf_on_run_end(p);
+
+    c->proc = 0;
+    release(&p->lock);
+
+   
+    // ensure that release() doesn't enable interrupts.
+    // again to avoid a race between interrupt and WFI.
+    c->intena = 0;
+
   }
 }
 
