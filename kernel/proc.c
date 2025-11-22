@@ -9,6 +9,11 @@
 #include "proc.h"
 #include "defs.h"
 
+/*----- Initialization of EEVDF global parameters ----- */
+uint64 min_vruntime = 0;      // minimum virtual runtime among all RUNNABLE processes
+int    default_weight = NICE_0_WEIGHT; // default weight for processes
+uint64 default_slice  = 10;   // default time slice, can be adjusted later
+
 extern uint ticks;  // from trap.c
 
 struct cpu cpus[NCPU];
@@ -202,11 +207,6 @@ nice_to_weight(int nice)
 {
   return sched_prio_to_weight[nice_to_index(nice)];
 }
-
-/*----- Initialization of EEVDF global parameters ----- */
-uint64 min_vruntime = 0;      // minimum virtual runtime among all RUNNABLE processes
-int    default_weight = NICE_0_WEIGHT; // default weight for processes
-uint64 default_slice  = 10;   // default time slice, can be adjusted later
 
 
 void
@@ -575,15 +575,15 @@ exit(int status)
   uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
   
   // Print metrics for this process
-  printf("\n ***Process Exit Metrics***\n");
+  printf("\n***Process Exit Metrics***\n");
   printf("PID: %d\n", p->pid);
   printf("Name: %s\n", p->name);
-  printf("Turnaround Time: %d ticks\n", (int)turnaround);
-  printf("Waiting Time: %d ticks\n", (int)p->total_wait_time);
-  printf("Response Time: %d ticks\n", (int)response);
-  printf("Total Run Time: %d ticks\n", (int)p->total_run_time); 
+  printf("Turnaround Time: %d k-ticks\n", (int)(turnaround / 1000));
+  printf("Waiting Time: %d k-ticks\n", (int)(p->total_wait_time / 1000));
+  printf("Response Time: %d k-ticks\n", (int)(response / 1000));
+  printf("Total Run Time: %d k-ticks\n", (int)(p->total_run_time / 1000));
   printf("Context Switches: %d\n", p->context_switches);
-  printf("CPU Share: %d%%\n", (int)cpu_percent);
+  printf("CPU Share: %d%%\n\n", (int)cpu_percent);
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){

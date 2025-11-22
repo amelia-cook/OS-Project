@@ -90,7 +90,7 @@ tags: $(OBJS) _init
 
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
-benchmarks/%.o: benchmarks/%.c
+user/benchmarks/%.o: user/benchmarks/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 _%: %.o $(ULIB)
@@ -99,7 +99,7 @@ _%: %.o $(ULIB)
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
 # build user programs whose source lives in benchmarks/
-$U/_%: benchmarks/%.o $(ULIB)
+$U/_%: user/benchmarks/%.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
@@ -165,8 +165,8 @@ UPROGS=\
 	# $U/_symlinktest\
 	# $U/_largefiletest\
 
-fs.img: mkfs/mkfs README.md user/xargstest.sh $(UPROGS)
-	mkfs/mkfs fs.img README.md user/xargstest.sh $(UPROGS)
+fs.img: mkfs/mkfs README.md peter-pan-small.txt pride-and-prejudice-small.txt user/xargstest.sh $(UPROGS)
+	mkfs/mkfs fs.img README.md peter-pan-small.txt pride-and-prejudice-small.txt user/xargstest.sh $(UPROGS)
 
 -include kernel/*.d user/*.d
 
@@ -241,4 +241,3 @@ gradescope-all:
 	zip submission.zip Makefile user/usys.pl user/*.c user/*.h kernel/*.h kernel/*.c
 
 .PHONY: qemu qemu-gdb gdb qemu-trace clean gradescope
-
