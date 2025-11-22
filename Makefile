@@ -148,6 +148,8 @@ UPROGS=\
 	$U/_alloctest\
 	$U/_specialtest\
 	$U/_umalloc\
+# 	$U/_short_io\
+# 	$U/_long_io\
 	# $U/_threadtest\
 	# $U/_symlinktest\
 	# $U/_largefiletest\

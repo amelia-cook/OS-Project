@@ -4442,7 +4442,7 @@ allocpid() {
     for(p = proc; p < &proc[NPROC]; p++) {
     800020ba:	0002ba97          	auipc	s5,0x2b
     800020be:	c4ea8a93          	addi	s5,s5,-946 # 8002cd08 <tickslock>
-    800020c2:	a075                	j	8000216e <scheduler+0xfc>
+    800020c2:	a849                	j	80002154 <scheduler+0xe2>
   asm volatile ("rdtime %0" : "=r" (time)); 
     800020c4:	c01026f3          	rdtime	a3
           p->total_wait_time += getTime() - p->wait_start;
@@ -4452,188 +4452,187 @@ allocpid() {
     800020d2:	18f4bc23          	sd	a5,408(s1)
           p->wait_start = 0;
     800020d6:	1a04b423          	sd	zero,424(s1)
-    800020da:	a091                	j	8000211e <scheduler+0xac>
-  asm volatile ("rdtime %0" : "=r" (time)); 
-    800020dc:	c01027f3          	rdtime	a5
-          p->first_run_time = getTime();
-    800020e0:	18f4b023          	sd	a5,384(s1)
-          p->first_run = 1;
-    800020e4:	1b64aa23          	sw	s6,436(s1)
-    800020e8:	a835                	j	80002124 <scheduler+0xb2>
-        c->proc = 0;
-    800020ea:	02093023          	sd	zero,32(s2)
-        found = 1;
-    800020ee:	8cda                	mv	s9,s6
-      c->intena = 0;
-    800020f0:	08092e23          	sw	zero,156(s2)
-      release(&p->lock);
-    800020f4:	8526                	mv	a0,s1
-    800020f6:	fffff097          	auipc	ra,0xfffff
-    800020fa:	b6c080e7          	jalr	-1172(ra) # 80000c62 <release>
-    for(p = proc; p < &proc[NPROC]; p++) {
-    800020fe:	1b848493          	addi	s1,s1,440
-    80002102:	07548263          	beq	s1,s5,80002166 <scheduler+0xf4>
-      acquire(&p->lock);
-    80002106:	89a6                	mv	s3,s1
-    80002108:	8526                	mv	a0,s1
-    8000210a:	fffff097          	auipc	ra,0xfffff
-    8000210e:	a88080e7          	jalr	-1400(ra) # 80000b92 <acquire>
-      if(p->state == RUNNABLE) {
-    80002112:	509c                	lw	a5,32(s1)
-    80002114:	fd479ee3          	bne	a5,s4,800020f0 <scheduler+0x7e>
-        if(p->wait_start != 0){
-    80002118:	1a84b783          	ld	a5,424(s1)
-    8000211c:	f7c5                	bnez	a5,800020c4 <scheduler+0x52>
-        if(p->first_run == 0) {
-    8000211e:	1b44a783          	lw	a5,436(s1)
-    80002122:	dfcd                	beqz	a5,800020dc <scheduler+0x6a>
+    800020da:	a8b9                	j	80002138 <scheduler+0xc6>
         p->state = RUNNING;
-    80002124:	0384a023          	sw	s8,32(s1)
+    800020dc:	0384a023          	sw	s8,32(s1)
         c->proc = p;
-    80002128:	02993023          	sd	s1,32(s2)
+    800020e0:	02993023          	sd	s1,32(s2)
   asm volatile ("rdtime %0" : "=r" (time)); 
-    8000212c:	c01027f3          	rdtime	a5
+    800020e4:	c01027f3          	rdtime	a5
         p->last_scheduled = getTime();
-    80002130:	18f4b823          	sd	a5,400(s1)
+    800020e8:	18f4b823          	sd	a5,400(s1)
         p->context_switches++;
-    80002134:	1b04a783          	lw	a5,432(s1)
-    80002138:	2785                	addiw	a5,a5,1
-    8000213a:	1af4a823          	sw	a5,432(s1)
+    800020ec:	1b04a783          	lw	a5,432(s1)
+    800020f0:	2785                	addiw	a5,a5,1
+    800020f2:	1af4a823          	sw	a5,432(s1)
         swtch(&c->scheduler, &p->context);
-    8000213e:	06898593          	addi	a1,s3,104
-    80002142:	855e                	mv	a0,s7
-    80002144:	00000097          	auipc	ra,0x0
-    80002148:	7ae080e7          	jalr	1966(ra) # 800028f2 <swtch>
-        if(p->state != UNUSED) {  // Check if process still exists
-    8000214c:	509c                	lw	a5,32(s1)
-    8000214e:	dfd1                	beqz	a5,800020ea <scheduler+0x78>
-  asm volatile ("rdtime %0" : "=r" (time)); 
-    80002150:	c0102773          	rdtime	a4
-          p->total_run_time += getTime() - p->last_scheduled;
-    80002154:	1884b783          	ld	a5,392(s1)
-    80002158:	1904b683          	ld	a3,400(s1)
-    8000215c:	8f95                	sub	a5,a5,a3
-    8000215e:	97ba                	add	a5,a5,a4
-    80002160:	18f4b423          	sd	a5,392(s1)
-    80002164:	b759                	j	800020ea <scheduler+0x78>
-    if(found == 0){
-    80002166:	000c9463          	bnez	s9,8000216e <scheduler+0xfc>
-      asm volatile("wfi");
-    8000216a:	10500073          	wfi
-  asm volatile("csrr %0, sstatus" : "=r" (x) );
-    8000216e:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() | SSTATUS_SIE);
-    80002172:	0027e793          	ori	a5,a5,2
-  asm volatile("csrw sstatus, %0" : : "r" (x));
-    80002176:	10079073          	csrw	sstatus,a5
-  asm volatile("csrr %0, sstatus" : "=r" (x) );
-    8000217a:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() & ~SSTATUS_SIE);
-    8000217e:	9bf5                	andi	a5,a5,-3
-  asm volatile("csrw sstatus, %0" : : "r" (x));
-    80002180:	10079073          	csrw	sstatus,a5
-    int found = 0;
-    80002184:	4c81                	li	s9,0
-    for(p = proc; p < &proc[NPROC]; p++) {
-    80002186:	00024497          	auipc	s1,0x24
-    8000218a:	d8248493          	addi	s1,s1,-638 # 80025f08 <proc>
-      if(p->state == RUNNABLE) {
-    8000218e:	4a09                	li	s4,2
+    800020f6:	06898593          	addi	a1,s3,104
+    800020fa:	855e                	mv	a0,s7
+    800020fc:	00000097          	auipc	ra,0x0
+    80002100:	7f6080e7          	jalr	2038(ra) # 800028f2 <swtch>
+        c->proc = 0;
+    80002104:	02093023          	sd	zero,32(s2)
         found = 1;
-    80002190:	4b05                	li	s6,1
-    80002192:	bf95                	j	80002106 <scheduler+0x94>
-
-0000000080002194 <sched>:
-{
-    80002194:	7179                	addi	sp,sp,-48
-    80002196:	f406                	sd	ra,40(sp)
-    80002198:	f022                	sd	s0,32(sp)
-    8000219a:	ec26                	sd	s1,24(sp)
-    8000219c:	e84a                	sd	s2,16(sp)
-    8000219e:	e44e                	sd	s3,8(sp)
-    800021a0:	1800                	addi	s0,sp,48
-  struct proc *p = myproc();
-    800021a2:	00000097          	auipc	ra,0x0
-    800021a6:	9ae080e7          	jalr	-1618(ra) # 80001b50 <myproc>
-    800021aa:	84aa                	mv	s1,a0
-  if(!holding(&p->lock))
-    800021ac:	fffff097          	auipc	ra,0xfffff
-    800021b0:	968080e7          	jalr	-1688(ra) # 80000b14 <holding>
-    800021b4:	c93d                	beqz	a0,8000222a <sched+0x96>
-  asm volatile("mv %0, tp" : "=r" (x) );
-    800021b6:	8792                	mv	a5,tp
-  if(mycpu()->noff != 1)
-    800021b8:	2781                	sext.w	a5,a5
-    800021ba:	079e                	slli	a5,a5,0x7
-    800021bc:	00024717          	auipc	a4,0x24
-    800021c0:	92c70713          	addi	a4,a4,-1748 # 80025ae8 <pid_lock>
-    800021c4:	97ba                	add	a5,a5,a4
-    800021c6:	0987a703          	lw	a4,152(a5)
-    800021ca:	4785                	li	a5,1
-    800021cc:	06f71763          	bne	a4,a5,8000223a <sched+0xa6>
-  if(p->state == RUNNING)
-    800021d0:	5098                	lw	a4,32(s1)
-    800021d2:	478d                	li	a5,3
-    800021d4:	06f70b63          	beq	a4,a5,8000224a <sched+0xb6>
+    80002108:	8cda                	mv	s9,s6
+      c->intena = 0;
+    8000210a:	08092e23          	sw	zero,156(s2)
+      release(&p->lock);
+    8000210e:	8526                	mv	a0,s1
+    80002110:	fffff097          	auipc	ra,0xfffff
+    80002114:	b52080e7          	jalr	-1198(ra) # 80000c62 <release>
+    for(p = proc; p < &proc[NPROC]; p++) {
+    80002118:	1b848493          	addi	s1,s1,440
+    8000211c:	03548863          	beq	s1,s5,8000214c <scheduler+0xda>
+      acquire(&p->lock);
+    80002120:	89a6                	mv	s3,s1
+    80002122:	8526                	mv	a0,s1
+    80002124:	fffff097          	auipc	ra,0xfffff
+    80002128:	a6e080e7          	jalr	-1426(ra) # 80000b92 <acquire>
+      if(p->state == RUNNABLE) {
+    8000212c:	509c                	lw	a5,32(s1)
+    8000212e:	fd479ee3          	bne	a5,s4,8000210a <scheduler+0x98>
+        if(p->wait_start != 0){
+    80002132:	1a84b783          	ld	a5,424(s1)
+    80002136:	f7d9                	bnez	a5,800020c4 <scheduler+0x52>
+        if(p->first_run == 0) {
+    80002138:	1b44a783          	lw	a5,436(s1)
+    8000213c:	f3c5                	bnez	a5,800020dc <scheduler+0x6a>
+  asm volatile ("rdtime %0" : "=r" (time)); 
+    8000213e:	c01027f3          	rdtime	a5
+          p->first_run_time = getTime();
+    80002142:	18f4b023          	sd	a5,384(s1)
+          p->first_run = 1;
+    80002146:	1b64aa23          	sw	s6,436(s1)
+    8000214a:	bf49                	j	800020dc <scheduler+0x6a>
+    if(found == 0){
+    8000214c:	000c9463          	bnez	s9,80002154 <scheduler+0xe2>
+      asm volatile("wfi");
+    80002150:	10500073          	wfi
   asm volatile("csrr %0, sstatus" : "=r" (x) );
-    800021d8:	100027f3          	csrr	a5,sstatus
-  return (x & SSTATUS_SIE) != 0;
-    800021dc:	8b89                	andi	a5,a5,2
-  if(intr_get())
-    800021de:	efb5                	bnez	a5,8000225a <sched+0xc6>
+    80002154:	100027f3          	csrr	a5,sstatus
+  w_sstatus(r_sstatus() | SSTATUS_SIE);
+    80002158:	0027e793          	ori	a5,a5,2
+  asm volatile("csrw sstatus, %0" : : "r" (x));
+    8000215c:	10079073          	csrw	sstatus,a5
+  asm volatile("csrr %0, sstatus" : "=r" (x) );
+    80002160:	100027f3          	csrr	a5,sstatus
+  w_sstatus(r_sstatus() & ~SSTATUS_SIE);
+    80002164:	9bf5                	andi	a5,a5,-3
+  asm volatile("csrw sstatus, %0" : : "r" (x));
+    80002166:	10079073          	csrw	sstatus,a5
+    int found = 0;
+    8000216a:	4c81                	li	s9,0
+    for(p = proc; p < &proc[NPROC]; p++) {
+    8000216c:	00024497          	auipc	s1,0x24
+    80002170:	d9c48493          	addi	s1,s1,-612 # 80025f08 <proc>
+      if(p->state == RUNNABLE) {
+    80002174:	4a09                	li	s4,2
+        found = 1;
+    80002176:	4b05                	li	s6,1
+    80002178:	b765                	j	80002120 <scheduler+0xae>
+
+000000008000217a <sched>:
+{
+    8000217a:	7179                	addi	sp,sp,-48
+    8000217c:	f406                	sd	ra,40(sp)
+    8000217e:	f022                	sd	s0,32(sp)
+    80002180:	ec26                	sd	s1,24(sp)
+    80002182:	e84a                	sd	s2,16(sp)
+    80002184:	e44e                	sd	s3,8(sp)
+    80002186:	1800                	addi	s0,sp,48
+  struct proc *p = myproc();
+    80002188:	00000097          	auipc	ra,0x0
+    8000218c:	9c8080e7          	jalr	-1592(ra) # 80001b50 <myproc>
+    80002190:	84aa                	mv	s1,a0
+  if(!holding(&p->lock))
+    80002192:	fffff097          	auipc	ra,0xfffff
+    80002196:	982080e7          	jalr	-1662(ra) # 80000b14 <holding>
+    8000219a:	cd35                	beqz	a0,80002216 <sched+0x9c>
   asm volatile("mv %0, tp" : "=r" (x) );
-    800021e0:	8792                	mv	a5,tp
+    8000219c:	8792                	mv	a5,tp
+  if(mycpu()->noff != 1)
+    8000219e:	2781                	sext.w	a5,a5
+    800021a0:	079e                	slli	a5,a5,0x7
+    800021a2:	00024717          	auipc	a4,0x24
+    800021a6:	94670713          	addi	a4,a4,-1722 # 80025ae8 <pid_lock>
+    800021aa:	97ba                	add	a5,a5,a4
+    800021ac:	0987a703          	lw	a4,152(a5)
+    800021b0:	4785                	li	a5,1
+    800021b2:	06f71a63          	bne	a4,a5,80002226 <sched+0xac>
+  if(p->state == RUNNING)
+    800021b6:	5098                	lw	a4,32(s1)
+    800021b8:	478d                	li	a5,3
+    800021ba:	06f70e63          	beq	a4,a5,80002236 <sched+0xbc>
+  asm volatile("csrr %0, sstatus" : "=r" (x) );
+    800021be:	100027f3          	csrr	a5,sstatus
+  return (x & SSTATUS_SIE) != 0;
+    800021c2:	8b89                	andi	a5,a5,2
+  if(intr_get())
+    800021c4:	e3c9                	bnez	a5,80002246 <sched+0xcc>
+  if(p->last_scheduled != 0) {
+    800021c6:	1904b783          	ld	a5,400(s1)
+    800021ca:	e7d1                	bnez	a5,80002256 <sched+0xdc>
+  asm volatile("mv %0, tp" : "=r" (x) );
+    800021cc:	8792                	mv	a5,tp
   intena = mycpu()->intena;
-    800021e2:	00024917          	auipc	s2,0x24
-    800021e6:	90690913          	addi	s2,s2,-1786 # 80025ae8 <pid_lock>
-    800021ea:	2781                	sext.w	a5,a5
-    800021ec:	079e                	slli	a5,a5,0x7
-    800021ee:	97ca                	add	a5,a5,s2
-    800021f0:	09c7a983          	lw	s3,156(a5)
-    800021f4:	8792                	mv	a5,tp
+    800021ce:	00024917          	auipc	s2,0x24
+    800021d2:	91a90913          	addi	s2,s2,-1766 # 80025ae8 <pid_lock>
+    800021d6:	2781                	sext.w	a5,a5
+    800021d8:	079e                	slli	a5,a5,0x7
+    800021da:	97ca                	add	a5,a5,s2
+    800021dc:	09c7a983          	lw	s3,156(a5)
+    800021e0:	8792                	mv	a5,tp
   swtch(&p->context, &mycpu()->scheduler);
-    800021f6:	2781                	sext.w	a5,a5
-    800021f8:	079e                	slli	a5,a5,0x7
-    800021fa:	00024597          	auipc	a1,0x24
-    800021fe:	91658593          	addi	a1,a1,-1770 # 80025b10 <cpus+0x8>
-    80002202:	95be                	add	a1,a1,a5
-    80002204:	06848513          	addi	a0,s1,104
-    80002208:	00000097          	auipc	ra,0x0
-    8000220c:	6ea080e7          	jalr	1770(ra) # 800028f2 <swtch>
-    80002210:	8792                	mv	a5,tp
+    800021e2:	2781                	sext.w	a5,a5
+    800021e4:	079e                	slli	a5,a5,0x7
+    800021e6:	00024597          	auipc	a1,0x24
+    800021ea:	92a58593          	addi	a1,a1,-1750 # 80025b10 <cpus+0x8>
+    800021ee:	95be                	add	a1,a1,a5
+    800021f0:	06848513          	addi	a0,s1,104
+    800021f4:	00000097          	auipc	ra,0x0
+    800021f8:	6fe080e7          	jalr	1790(ra) # 800028f2 <swtch>
+    800021fc:	8792                	mv	a5,tp
   mycpu()->intena = intena;
-    80002212:	2781                	sext.w	a5,a5
-    80002214:	079e                	slli	a5,a5,0x7
-    80002216:	97ca                	add	a5,a5,s2
-    80002218:	0937ae23          	sw	s3,156(a5)
+    800021fe:	2781                	sext.w	a5,a5
+    80002200:	079e                	slli	a5,a5,0x7
+    80002202:	97ca                	add	a5,a5,s2
+    80002204:	0937ae23          	sw	s3,156(a5)
 }
-    8000221c:	70a2                	ld	ra,40(sp)
-    8000221e:	7402                	ld	s0,32(sp)
-    80002220:	64e2                	ld	s1,24(sp)
-    80002222:	6942                	ld	s2,16(sp)
-    80002224:	69a2                	ld	s3,8(sp)
-    80002226:	6145                	addi	sp,sp,48
-    80002228:	8082                	ret
+    80002208:	70a2                	ld	ra,40(sp)
+    8000220a:	7402                	ld	s0,32(sp)
+    8000220c:	64e2                	ld	s1,24(sp)
+    8000220e:	6942                	ld	s2,16(sp)
+    80002210:	69a2                	ld	s3,8(sp)
+    80002212:	6145                	addi	sp,sp,48
+    80002214:	8082                	ret
     panic("sched p->lock");
-    8000222a:	00007517          	auipc	a0,0x7
-    8000222e:	19e50513          	addi	a0,a0,414 # 800093c8 <digits+0x258>
-    80002232:	ffffe097          	auipc	ra,0xffffe
-    80002236:	332080e7          	jalr	818(ra) # 80000564 <panic>
+    80002216:	00007517          	auipc	a0,0x7
+    8000221a:	1b250513          	addi	a0,a0,434 # 800093c8 <digits+0x258>
+    8000221e:	ffffe097          	auipc	ra,0xffffe
+    80002222:	346080e7          	jalr	838(ra) # 80000564 <panic>
     panic("sched locks");
-    8000223a:	00007517          	auipc	a0,0x7
-    8000223e:	19e50513          	addi	a0,a0,414 # 800093d8 <digits+0x268>
-    80002242:	ffffe097          	auipc	ra,0xffffe
-    80002246:	322080e7          	jalr	802(ra) # 80000564 <panic>
+    80002226:	00007517          	auipc	a0,0x7
+    8000222a:	1b250513          	addi	a0,a0,434 # 800093d8 <digits+0x268>
+    8000222e:	ffffe097          	auipc	ra,0xffffe
+    80002232:	336080e7          	jalr	822(ra) # 80000564 <panic>
     panic("sched running");
-    8000224a:	00007517          	auipc	a0,0x7
-    8000224e:	19e50513          	addi	a0,a0,414 # 800093e8 <digits+0x278>
-    80002252:	ffffe097          	auipc	ra,0xffffe
-    80002256:	312080e7          	jalr	786(ra) # 80000564 <panic>
+    80002236:	00007517          	auipc	a0,0x7
+    8000223a:	1b250513          	addi	a0,a0,434 # 800093e8 <digits+0x278>
+    8000223e:	ffffe097          	auipc	ra,0xffffe
+    80002242:	326080e7          	jalr	806(ra) # 80000564 <panic>
     panic("sched interruptible");
-    8000225a:	00007517          	auipc	a0,0x7
-    8000225e:	19e50513          	addi	a0,a0,414 # 800093f8 <digits+0x288>
-    80002262:	ffffe097          	auipc	ra,0xffffe
-    80002266:	302080e7          	jalr	770(ra) # 80000564 <panic>
+    80002246:	00007517          	auipc	a0,0x7
+    8000224a:	1b250513          	addi	a0,a0,434 # 800093f8 <digits+0x288>
+    8000224e:	ffffe097          	auipc	ra,0xffffe
+    80002252:	316080e7          	jalr	790(ra) # 80000564 <panic>
+  asm volatile ("rdtime %0" : "=r" (time)); 
+    80002256:	c01026f3          	rdtime	a3
+    p->total_run_time += getTime() - p->last_scheduled;
+    8000225a:	1884b703          	ld	a4,392(s1)
+    8000225e:	40f707b3          	sub	a5,a4,a5
+    80002262:	97b6                	add	a5,a5,a3
+    80002264:	18f4b423          	sd	a5,392(s1)
+    80002268:	b795                	j	800021cc <sched+0x52>
 
 000000008000226a <exit>:
 {
@@ -4826,7 +4825,7 @@ allocpid() {
     8000245e:	808080e7          	jalr	-2040(ra) # 80000c62 <release>
   sched();
     80002462:	00000097          	auipc	ra,0x0
-    80002466:	d32080e7          	jalr	-718(ra) # 80002194 <sched>
+    80002466:	d18080e7          	jalr	-744(ra) # 8000217a <sched>
   panic("zombie exit");
     8000246a:	00007517          	auipc	a0,0x7
     8000246e:	09e50513          	addi	a0,a0,158 # 80009508 <digits+0x398>
@@ -4859,7 +4858,7 @@ allocpid() {
     800024a4:	1af4b423          	sd	a5,424(s1)
   sched();
     800024a8:	00000097          	auipc	ra,0x0
-    800024ac:	cec080e7          	jalr	-788(ra) # 80002194 <sched>
+    800024ac:	cd2080e7          	jalr	-814(ra) # 8000217a <sched>
   release(&p->lock);
     800024b0:	8526                	mv	a0,s1
     800024b2:	ffffe097          	auipc	ra,0xffffe
@@ -4915,7 +4914,7 @@ allocpid() {
     8000251a:	d09c                	sw	a5,32(s1)
   sched();
     8000251c:	00000097          	auipc	ra,0x0
-    80002520:	c78080e7          	jalr	-904(ra) # 80002194 <sched>
+    80002520:	c5e080e7          	jalr	-930(ra) # 8000217a <sched>
   p->chan = 0;
     80002524:	0204b823          	sd	zero,48(s1)
     release(&p->lock);
@@ -4949,7 +4948,7 @@ allocpid() {
     80002564:	d09c                	sw	a5,32(s1)
   sched();
     80002566:	00000097          	auipc	ra,0x0
-    8000256a:	c2e080e7          	jalr	-978(ra) # 80002194 <sched>
+    8000256a:	c14080e7          	jalr	-1004(ra) # 8000217a <sched>
   p->chan = 0;
     8000256e:	0204b823          	sd	zero,48(s1)
   if(lk != &p->lock){
@@ -4965,7 +4964,7 @@ allocpid() {
     80002584:	d09c                	sw	a5,32(s1)
   sched();
     80002586:	00000097          	auipc	ra,0x0
-    8000258a:	c0e080e7          	jalr	-1010(ra) # 80002194 <sched>
+    8000258a:	bf4080e7          	jalr	-1036(ra) # 8000217a <sched>
   p->chan = 0;
     8000258e:	0204b823          	sd	zero,48(s1)
   if(lk != &p->lock){

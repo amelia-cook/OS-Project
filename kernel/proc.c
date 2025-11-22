@@ -529,9 +529,9 @@ scheduler(void)
         swtch(&c->scheduler, &p->context);
 
         // running timing 
-        if(p->state != UNUSED) {  // Check if process still exists
-          p->total_run_time += getTime() - p->last_scheduled;
-        }
+        // if(p->state != UNUSED) {  // Check if process still exists
+        //   p->total_run_time += getTime() - p->last_scheduled;
+        // }
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
@@ -573,6 +573,10 @@ sched(void)
     panic("sched running");
   if(intr_get())
     panic("sched interruptible");
+
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->scheduler);
