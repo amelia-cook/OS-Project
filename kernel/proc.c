@@ -792,7 +792,7 @@ yield(void)
   p->state = RUNNABLE;
 
   eevdf_update_deadline(p);   // recompute virtual deadline
-  
+
   // TIMING DATA - wait timing data
   p->wait_start = getTime();
 
@@ -839,6 +839,9 @@ sleep(void *chan, struct spinlock *lk)
     release(lk);
   }
 
+  // EEVDF: update vruntime before sleeping
+  eevdf_on_run_end(p);
+  
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
