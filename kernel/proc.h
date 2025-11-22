@@ -105,5 +105,16 @@ struct proc {
   char name[16];               // Process name (debugging)
   uint64 trap_va;              // trapframe va for threads
 
+  // TIMING DATA - timing metrics 
+  uint64 creation_time; // when process was created
+  uint64 first_run_time; // when process first got CPU (for response time)
+  uint64 total_run_time; // accumulated CPU time
+  uint64 last_scheduled; // last time scheduled
+  uint64 total_wait_time; // time spent waiting in RUNNABLE state
+  uint64 completion_time; // when process exits
+  uint64 wait_start; // when current wait period started
+  uint context_switches; // number of context switches
+  int first_run; // check if process has been run yet
+
   uint64 arrival;              // FIFO timestamp (monotonic increasing)
 };

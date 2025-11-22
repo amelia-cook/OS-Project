@@ -125,6 +125,17 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // TIMING DATA - init timing metrics 
+  p->creation_time = getTime();
+  p->first_run_time = 0;
+  p->total_run_time = 0;
+  p->last_scheduled = 0;
+  p->total_wait_time = 0;
+  p->completion_time = 0;
+  p->wait_start = 0;
+  p->context_switches = 0;
+  p->first_run = 0;
+
   return p;
 }
 
@@ -220,6 +231,9 @@ userinit(void)
 
   p->state = RUNNABLE;
 
+  // TIMING DATA - wait timing data
+  p->wait_start = getTime();
+
   //FIFO arrival time
   p->arrival = arrival_counter++;  // record join order
 
@@ -288,6 +302,9 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  // TIMING DATA - wait timing data
+  np->wait_start = getTime();
+
   //FIFO arrival time
   np->arrival = arrival_counter++;  // record join order
 
@@ -332,6 +349,14 @@ exit(int status)
 
   if(p == initproc)
     panic("init exiting");
+
+  // TIMING DATA - update run timing
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
+
+  // TIMING DATA - completion timing 
+  p->completion_time = getTime();
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
@@ -529,8 +554,24 @@ scheduler(void)
       // on first scheduling; failing to hold it leads to release() panics.
       acquire(&chosen->lock);
       if(chosen->state == RUNNABLE) {
+        // TIMING DATA - wait timing 
+        if(chosen->wait_start != 0){
+          chosen->total_wait_time += getTime() - chosen->wait_start;
+          chosen->wait_start = 0;
+        }
+
+        // TIMING DATA - response timing 
+        if(chosen->first_run == 0) {
+          chosen->first_run_time = getTime();
+          chosen->first_run = 1;
+        }
+
         chosen->state = RUNNING;
         c->proc = chosen;
+
+        // TIMING DATA - scheduling timing
+        chosen->last_scheduled = getTime();
+        chosen->context_switches++;
 
         swtch(&c->scheduler, &chosen->context);
 
@@ -582,6 +623,10 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+
+  // TIMING DATA - wait timing data
+  p->wait_start = getTime();
+
   sched();
   release(&p->lock);
 }
@@ -652,6 +697,10 @@ wakeup(void *chan)
     acquire(&p->lock);
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+
+      // TIMING DATA - wait timing data
+      p->wait_start = getTime();
+
       p->arrival = arrival_counter++;  // record join order
     }
     release(&p->lock);
@@ -667,6 +716,9 @@ wakeup1(struct proc *p)
     panic("wakeup1");
   if(p->chan == p && p->state == SLEEPING) {
     p->state = RUNNABLE;
+
+    // TIMING DATA - wait timing data
+      p->wait_start = getTime();
   }
 }
 
@@ -751,4 +803,18 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+
+// TIMING DATA - timing functions
+unsigned long getTime() { 
+  unsigned long time; 
+  asm volatile ("rdtime %0" : "=r" (time)); 
+  return time; 
+}
+
+unsigned long getCycles() { 
+  unsigned long cycles; 
+  asm volatile ("rdcycle %0" : "=r" (cycles)); 
+  return cycles; 
 }
