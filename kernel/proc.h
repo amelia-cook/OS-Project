@@ -105,7 +105,7 @@ struct proc {
   char name[16];               // Process name (debugging)
   uint64 trap_va;              // trapframe va for threads
 
-  //timing metrics 
+  // TIMING DATA - timing metrics 
   uint64 creation_time; // when process was created
   uint64 first_run_time; // when process first got CPU (for response time)
   uint64 total_run_time; // accumulated CPU time

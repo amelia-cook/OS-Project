@@ -123,7 +123,7 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
-  //init timing metrics 
+  // TIMING DATA - init timing metrics 
   p->creation_time = getTime();
   p->first_run_time = 0;
   p->total_run_time = 0;
@@ -229,7 +229,7 @@ userinit(void)
 
   p->state = RUNNABLE;
 
-  // wait timing data
+  // TIMING DATA - wait timing data
   p->wait_start = getTime();
 
   release(&p->lock);
@@ -297,7 +297,7 @@ fork(void)
 
   np->state = RUNNABLE;
 
-  //wait timing data
+  // TIMING DATA - wait timing data
   np->wait_start = getTime();
 
   release(&np->lock);
@@ -342,12 +342,12 @@ exit(int status)
   if(p == initproc)
     panic("init exiting");
 
-  // update run timing
+  // TIMING DATA - update run timing
   if(p->last_scheduled != 0) {
     p->total_run_time += getTime() - p->last_scheduled;
   }
 
-  // completion timing 
+  // TIMING DATA - completion timing 
   p->completion_time = getTime();
 
   // Print metrics for this process
@@ -504,13 +504,13 @@ scheduler(void)
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // wait timing 
+        // TIMING DATA - wait timing 
         if(p->wait_start != 0){
           p->total_wait_time += getTime() - p->wait_start;
           p->wait_start = 0;
         }
 
-        // reponse timing 
+        // TIMING DATA - reponse timing 
         if(p->first_run == 0) {
           p->first_run_time = getTime();
           p->first_run = 1;
@@ -522,13 +522,13 @@ scheduler(void)
         p->state = RUNNING;
         c->proc = p;
 
-        // scheduling timing 
+        // TIMING DATA - scheduling timing 
         p->last_scheduled = getTime();
         p->context_switches++;
 
         swtch(&c->scheduler, &p->context);
 
-        // running timing 
+        // TIMING DATA - running timing 
         // if(p->state != UNUSED) {  // Check if process still exists
         //   p->total_run_time += getTime() - p->last_scheduled;
         // }
@@ -590,14 +590,14 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
 
-  // update run timing
-  if(p->last_scheduled != 0) {
-    p->total_run_time += getTime() - p->last_scheduled;
-  }
+  // TIMING DATA - update run timing
+  // if(p->last_scheduled != 0) {
+  //   p->total_run_time += getTime() - p->last_scheduled;
+  // }
 
   p->state = RUNNABLE;
   
-  // wait timing data
+  // TIMING DATA - wait timing data
   p->wait_start = getTime();
 
   sched();
@@ -643,10 +643,10 @@ sleep(void *chan, struct spinlock *lk)
     release(lk);
   }
 
-  //update run timing
-  if(p->last_scheduled != 0) {
-    p->total_run_time += getTime() - p->last_scheduled;
-  }
+  // TIMING DATA - update run timing
+  // if(p->last_scheduled != 0) {
+  //   p->total_run_time += getTime() - p->last_scheduled;
+  // }
 
   // Go to sleep.
   p->chan = chan;
@@ -676,7 +676,7 @@ wakeup(void *chan)
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
 
-      // wait timing data
+      // TIMING DATA - wait timing data
       p->wait_start = getTime();
     }
     release(&p->lock);
@@ -693,7 +693,7 @@ wakeup1(struct proc *p)
   if(p->chan == p && p->state == SLEEPING) {
     p->state = RUNNABLE;
 
-    // wait timing data
+    // TIMING DATA - wait timing data
     p->wait_start = getTime();
   }
 }
@@ -783,7 +783,7 @@ procdump(void)
 
 
 
-//timing functions
+// TIMING DATA - timing functions
 unsigned long getTime() { 
   unsigned long time; 
   asm volatile ("rdtime %0" : "=r" (time)); 

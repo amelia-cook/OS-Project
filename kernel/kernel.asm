@@ -3638,7 +3638,7 @@ wakeup1(struct proc *p)
     80001a20:	00978f63          	beq	a5,s1,80001a3e <wakeup1+0x36>
     p->state = RUNNABLE;
 
-    // wait timing data
+    // TIMING DATA - wait timing data
     p->wait_start = getTime();
   }
 }
@@ -3661,7 +3661,7 @@ wakeup1(struct proc *p)
     80001a48:	d09c                	sw	a5,32(s1)
 
 
-//timing functions
+// TIMING DATA - timing functions
 unsigned long getTime() { 
   unsigned long time; 
   asm volatile ("rdtime %0" : "=r" (time)); 
