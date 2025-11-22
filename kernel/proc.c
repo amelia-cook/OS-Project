@@ -508,6 +508,8 @@ fork(void)
   np->slice           = p->slice;
   np->last_start_time = 0;   // not started yet
   np->actual_runtime  = 0;   // reset actual runtime
+
+  // Timing data - initialize timing metrics
   eevdf_update_deadline(np);
 
   pid = np->pid;
@@ -870,7 +872,7 @@ wakeup(void *chan)
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
       
-      // EEVDF: update virtual deadline upon wakeup and lag will be computed next scheduler tick
+      // EEVDF: update deadline for raeady queue upon wakeup and lag will be computed next scheduler tick
       eevdf_update_deadline(p);
 
       // TIMING DATA - wait timing data
