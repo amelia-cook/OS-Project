@@ -220,4 +220,3 @@ int             virtio_net_recv(void *data, int len);
 // TIMING DATA - timing function
 unsigned long getTime(void);
 unsigned long getCycles(void);
-// void printprocmetrics(void)

@@ -767,7 +767,6 @@ procdump(void)
 }
 
 
-
 // TIMING DATA - timing functions
 unsigned long getTime() { 
   unsigned long time; 
