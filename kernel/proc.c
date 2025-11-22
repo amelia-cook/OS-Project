@@ -367,10 +367,10 @@ exit(int status)
   printf("\n ***Process Exit Metrics***\n");
   printf("PID: %d\n", p->pid);
   printf("Name: %s\n", p->name);
-  printf("Turnaround Time: %d ticks\n", (int)turnaround);
-  printf("Waiting Time: %d ticks\n", (int)p->total_wait_time);
-  printf("Response Time: %d ticks\n", (int)response);
-  printf("Total Run Time: %d ticks\n", (int)p->total_run_time); 
+  printf("Turnaround Time: %d ticks\n", (int)(turnaround/1000));
+  printf("Waiting Time: %d ticks\n", (int)(p->total_wait_time/1000));
+  printf("Response Time: %d ticks\n", (int)(response/1000));
+  printf("Total Run Time: %d ticks\n", (int)(p->total_run_time/1000)); 
   printf("Context Switches: %d\n", p->context_switches);
   printf("CPU Share: %d%%\n", (int)cpu_percent);
 
