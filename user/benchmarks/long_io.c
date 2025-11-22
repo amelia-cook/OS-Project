@@ -14,8 +14,8 @@
 int
 main(int argc, char *argv[])
 {
-    for (int i = 0; i < 10; i++) {
-        int fd1 = open("pride-and-prejudice.txt", O_RDONLY);
+    for (int i = 0; i < 45; i++) {
+        int fd1 = open("pride-and-prejudice.txt-small", O_RDONLY);
         char buf;
         
         while (read(fd1, &buf, sizeof(buf)) > 0) {
