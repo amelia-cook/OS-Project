@@ -15,7 +15,7 @@ int
 main(int argc, char *argv[])
 {
     for (int i = 0; i < 45; i++) {
-        int fd1 = open("pride-and-prejudice-small.txt", O_RDONLY);
+        int fd1 = open("head -n 1000 pride-and-prejudice.txt > pride-and-prejudice-small.txt", O_RDONLY);
         char buf;
         
         while (read(fd1, &buf, sizeof(buf)) > 0) {
