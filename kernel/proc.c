@@ -124,13 +124,15 @@ found:
   p->trap_va = TRAPFRAME;
 
   // Initialize EEVDF-related parameters
-  p->vruntime        = min_vruntime; //start new process at current minimum vruntime
-  p->vdeadline       = 0;              // should be computed before scheduling (vruntime + slice/weight)
-  p->lag             = 0;
-  p->weight          = default_weight; // all processes share the same weight for now
-  p->slice           = default_slice;
-  p->last_start_time = 0;         
-  p->actual_runtime  = 0;       
+  p->vruntime = min_vruntime; //start new process at current minimum vruntime
+  p->vdeadline = p->vruntime + (default_slice * default_weight) / default_weight;; // should be computed before scheduling (vruntime + slice/weight)
+  p->lag = 0;
+  
+  p->weight = default_weight; // all processes share the same weight for now
+  p->slice = default_slice;
+
+  p->last_start_time = 0;
+  p->actual_runtime  = 0;
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
