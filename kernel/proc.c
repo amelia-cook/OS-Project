@@ -357,6 +357,22 @@ exit(int status)
 
   // TIMING DATA - completion timing 
   p->completion_time = getTime();
+  
+  // Print metrics for this process
+  uint64 turnaround = p->completion_time - p->creation_time;
+  uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
+  uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
+  
+  // Print metrics for this process
+  printf("\n ***Process Exit Metrics***\n");
+  printf("PID: %d\n", p->pid);
+  printf("Name: %s\n", p->name);
+  printf("Turnaround Time: %d ticks\n", (int)turnaround);
+  printf("Waiting Time: %d ticks\n", (int)p->total_wait_time);
+  printf("Response Time: %d ticks\n", (int)response);
+  printf("Total Run Time: %d ticks\n", (int)p->total_run_time); 
+  printf("Context Switches: %d\n", p->context_switches);
+  printf("CPU Share: %d%%\n", (int)cpu_percent);
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){

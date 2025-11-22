@@ -90,7 +90,16 @@ tags: $(OBJS) _init
 
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
+benchmarks/%.o: benchmarks/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 _%: %.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(OBJDUMP) -S $@ > $*.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
+# build user programs whose source lives in benchmarks/
+$U/_%: benchmarks/%.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
@@ -106,12 +115,6 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	# in order to be able to max out the proc table.
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o $U/umalloc.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
-
-$U/_fifotest: $U/fifotest.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_fifotest $U/fifotest.o $(ULIB)
-	$(OBJDUMP) -S $U/_fifotest > $U/fifotest.asm
-
-
 
 $U/_alarmtest: $U/alarmtest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -T $U/alarmtest.ld -o $@ $^
@@ -135,7 +138,6 @@ UPROGS=\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
-	$U/_fifotest\
 	$U/_grep\
 	$U/_init\
 	$U/_kill\
@@ -155,6 +157,10 @@ UPROGS=\
 	$U/_alloctest\
 	$U/_specialtest\
 	$U/_umalloc\
+	$U/_short_io\
+	$U/_long_io\
+	$U/_short_cpu\
+	$U/_long_cpu\
 	# $U/_threadtest\
 	# $U/_symlinktest\
 	# $U/_largefiletest\
