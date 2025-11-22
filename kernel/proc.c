@@ -528,11 +528,6 @@ scheduler(void)
 
         swtch(&c->scheduler, &p->context);
 
-        // TIMING DATA - running timing 
-        // if(p->state != UNUSED) {  // Check if process still exists
-        //   p->total_run_time += getTime() - p->last_scheduled;
-        // }
-
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
@@ -590,11 +585,6 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
 
-  // TIMING DATA - update run timing
-  // if(p->last_scheduled != 0) {
-  //   p->total_run_time += getTime() - p->last_scheduled;
-  // }
-
   p->state = RUNNABLE;
   
   // TIMING DATA - wait timing data
@@ -642,11 +632,6 @@ sleep(void *chan, struct spinlock *lk)
     acquire(&p->lock);  //DOC: sleeplock1
     release(lk);
   }
-
-  // TIMING DATA - update run timing
-  // if(p->last_scheduled != 0) {
-  //   p->total_run_time += getTime() - p->last_scheduled;
-  // }
 
   // Go to sleep.
   p->chan = chan;
