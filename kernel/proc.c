@@ -785,8 +785,14 @@ yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
+  
+  // EEVDF: update vruntime before giving up CPU
+  eevdf_on_run_end(p);
+
   p->state = RUNNABLE;
 
+  eevdf_update_deadline(p);   // recompute virtual deadline
+  
   // TIMING DATA - wait timing data
   p->wait_start = getTime();
 
