@@ -58,7 +58,6 @@ void test_basic_fairness() {
   printf("\n=== Test 1: Basic EEVDF Fairness ===\n");
   printf("Creating %d CPU-bound processes with same priority\n", NUM_PROCS);
   
-  int pids[NUM_PROCS];
   int status;
   
   for(int i = 0; i < NUM_PROCS; i++) {
@@ -73,8 +72,6 @@ void test_basic_fairness() {
       cpu_intensive(CPU_WORK / NUM_PROCS);
       exit(0);
     }
-    
-    pids[i] = pid;
   }
   
   // Wait for all children
@@ -194,8 +191,6 @@ void test_yield_behavior() {
   printf("\n=== Test 4: Yield Behavior ===\n");
   printf("Testing that yield properly updates virtual runtime\n");
   
-  int pids[2];
-  
   for(int i = 0; i < 2; i++) {
     int pid = fork();
     if(pid < 0) {
@@ -212,8 +207,6 @@ void test_yield_behavior() {
       printf("Process %d completed with yields\n", getpid());
       exit(0);
     }
-    
-    pids[i] = pid;
   }
   
   // Wait for all children

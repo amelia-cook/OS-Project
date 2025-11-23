@@ -10,7 +10,6 @@ int main(int argc, char *argv[]) {
   printf("Expected: All processes should get fair CPU time\n\n");
   
   int n = 3;
-  int pids[3];
   
   for(int i = 0; i < n; i++) {
     int pid = fork();
@@ -35,8 +34,6 @@ int main(int argc, char *argv[]) {
       printf("Process %d (pid=%d) done\n", i, getpid());
       exit(0);
     }
-    
-    pids[i] = pid;
   }
   
   // Parent waits for all children
