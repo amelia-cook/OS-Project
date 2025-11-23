@@ -541,7 +541,7 @@ fork(void)
 
   np->state = RUNNABLE;
 
-  // TIMING DATA - wait timing data
+  // TIMING - start tracking wait time
   np->wait_start = getTime();
 
   release(&np->lock);
@@ -586,29 +586,29 @@ exit(int status)
   if(p == initproc)
     panic("init exiting");
 
-  // TIMING DATA - update run timing
+// TIMING - update final run time
   if(p->last_scheduled != 0) {
     p->total_run_time += getTime() - p->last_scheduled;
   }
 
-  // TIMING DATA - completion timing 
+  // TIMING - record completion time
   p->completion_time = getTime();
-  
-  // Print metrics for this process
+
+  // Calculate and print metrics
   uint64 turnaround = p->completion_time - p->creation_time;
   uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
   uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
   
   // Print metrics for this process
-  printf("\n***Process Exit Metrics***\n");
+  printf("\n ***Process Exit Metrics***\n");
   printf("PID: %d\n", p->pid);
   printf("Name: %s\n", p->name);
-  printf("Turnaround Time: %d k-ticks\n", (int)(turnaround / 1000));
-  printf("Waiting Time: %d k-ticks\n", (int)(p->total_wait_time / 1000));
-  printf("Response Time: %d k-ticks\n", (int)(response / 1000));
-  printf("Total Run Time: %d k-ticks\n", (int)(p->total_run_time / 1000));
+  printf("Turnaround Time: %d ticks\n", (int)(turnaround/1000));
+  printf("Waiting Time: %d ticks\n", (int)(p->total_wait_time/1000));
+  printf("Response Time: %d ticks\n", (int)(response/1000));
+  printf("Total Run Time: %d ticks\n", (int)(p->total_run_time/1000)); 
   printf("Context Switches: %d\n", p->context_switches);
-  printf("CPU Share: %d%%\n\n", (int)cpu_percent);
+  printf("CPU Share: %d%%\n", (int)cpu_percent);
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
@@ -757,8 +757,24 @@ scheduler(void)
       continue;
     }
 
+    // TIMING - update wait time
+    if(p->wait_start != 0){
+      p->total_wait_time += getTime() - p->wait_start;
+      p->wait_start = 0;
+    }
+
+    // TIMING - track first run (response time)
+    if(p->first_run == 0) {
+      p->first_run_time = getTime();
+      p->first_run = 1;
+    }
+
     p->state = RUNNING;
     c->proc = p;
+
+    // TIMING - record scheduling time
+    p->last_scheduled = getTime();
+    p->context_switches++;
 
     // EEVDF: process is starting to run, updatate start time
     eevdf_on_run_start(p);
@@ -800,6 +816,11 @@ sched(void)
     panic("sched running");
   if(intr_get())
     panic("sched interruptible");
+
+  // TIMING - update run time when giving up CPU
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->scheduler);
@@ -906,7 +927,7 @@ wakeup(void *chan)
       // Update deadline for ready queue upon wakeup
       eevdf_update_deadline(p);
 
-      // TIMING DATA - wait timing data
+      // TIMING - start tracking wait time
       p->wait_start = getTime();
     }
     release(&p->lock);
