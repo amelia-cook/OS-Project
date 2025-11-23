@@ -569,6 +569,7 @@ sched(void)
   if(intr_get())
     panic("sched interruptible");
 
+  // TIMING - update run time when giving up CPU
   if(p->last_scheduled != 0) {
     p->total_run_time += getTime() - p->last_scheduled;
   }
