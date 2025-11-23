@@ -73,26 +73,46 @@ eevdf_update_deadline(struct proc *p)
 static void
 eevdf_on_run_start(struct proc *p)
 {
-  p->last_start_time = ticks;  // real time in timer ticks
+  uint64 now = getTime();
+  p->last_start_time = now;  // Use high-resolution time
+  
+  // Track first run time for response time calculation
+  if(p->first_run == 0){
+    p->first_run = 1;
+    p->first_run_time = now;
+  }
+  
+  // Update wait time (time spent in RUNNABLE state)
+  if(p->wait_start > 0){
+    p->total_wait_time += (now - p->wait_start);
+    p->wait_start = 0;
+  }
+  
+  // Increment context switch counter
+  p->context_switches++;
 }
 
 // Called right after the process stops running (yields, sleeps, exits).
 static void
 eevdf_on_run_end(struct proc *p)
 {
-  uint64 now   = ticks;
+  uint64 now   = getTime();
   uint64 delta = now - p->last_start_time;
   if(delta == 0)
     return;
 
   // Real CPU time this process just used
   p->actual_runtime += delta;
+  p->total_run_time += delta; // Track total run time
 
   // Update virtual runtime using weight
   uint64 virt_delta = eevdf_calc_delta_vruntime(delta, p);
   p->vruntime += virt_delta;
 
   eevdf_update_deadline(p);
+  
+  // Mark when last scheduled
+  p->last_scheduled = now;
 }
 
 // Compute weighted average vruntime V using RUNNABLE/RUNNING tasks.
@@ -137,7 +157,7 @@ eevdf_compute_avg_vruntime(void)
 
 // Update lag for all active tasks
 // lag_i = w_i * (V - v_i)
-// Positive lag: process is behind and should be picked
+// Positive lag: process is behind and should be picked (V > v_i means behind)
 static void
 eevdf_update_lag_all(void)
 {
@@ -146,9 +166,14 @@ eevdf_update_lag_all(void)
 
   for(p = proc; p < &proc[NPROC]; p++){
     if(p->state == RUNNABLE || p->state == RUNNING){
-      int diff = (int)V - (int)p->vruntime;
-      int w    = (p->weight > 0) ? p->weight : NICE_0_WEIGHT;
-      p->lag     = diff * w;
+      int w = (p->weight > 0) ? p->weight : NICE_0_WEIGHT;
+      // lag > 0 when V > vruntime (process is behind, eligible)
+      if(V >= p->vruntime){
+        p->lag = (V - p->vruntime) * w;
+      } else {
+        // Process is ahead, ineligible
+        p->lag = 0; // Will be filtered out in pick_eevdf_proc
+      }
     } else {
       p->lag = 0;
     }
@@ -872,7 +897,13 @@ wakeup(void *chan)
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
       
-      // EEVDF: update deadline for raeady queue upon wakeup and lag will be computed next scheduler tick
+      // EEVDF: Place waking process at current min_vruntime to avoid starvation
+      // This prevents long-sleeping processes from being heavily penalized
+      if(p->vruntime < min_vruntime){
+        p->vruntime = min_vruntime;
+      }
+      
+      // Update deadline for ready queue upon wakeup
       eevdf_update_deadline(p);
 
       // TIMING DATA - wait timing data
@@ -891,6 +922,12 @@ wakeup1(struct proc *p)
     panic("wakeup1");
   if(p->chan == p && p->state == SLEEPING) {
     p->state = RUNNABLE;
+    
+    // EEVDF: Place waking process at current min_vruntime
+    if(p->vruntime < min_vruntime){
+      p->vruntime = min_vruntime;
+    }
+    eevdf_update_deadline(p);
 
     // TIMING DATA - wait timing data
     p->wait_start = getTime();
