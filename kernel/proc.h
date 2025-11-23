@@ -1,5 +1,4 @@
 
-extern uint64 global_vtime;
 
 // EEVDF niceness configuration.
 #define NICE_MIN    (-20)
