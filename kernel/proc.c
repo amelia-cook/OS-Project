@@ -350,15 +350,15 @@ exit(int status)
   if(p == initproc)
     panic("init exiting");
 
-  // TIMING DATA - update run timing
+  // TIMING - update final run time
   if(p->last_scheduled != 0) {
     p->total_run_time += getTime() - p->last_scheduled;
   }
 
-  // TIMING DATA - completion timing 
+  // TIMING - record completion time
   p->completion_time = getTime();
-  
-  // Print metrics for this process
+
+  // Calculate and print metrics
   uint64 turnaround = p->completion_time - p->creation_time;
   uint64 response = (p->first_run == 1) ? (p->first_run_time - p->creation_time) : 0;
   uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
@@ -570,13 +570,13 @@ scheduler(void)
       // on first scheduling; failing to hold it leads to release() panics.
       acquire(&chosen->lock);
       if(chosen->state == RUNNABLE) {
-        // TIMING DATA - wait timing 
+        // TIMING - update wait time
         if(chosen->wait_start != 0){
           chosen->total_wait_time += getTime() - chosen->wait_start;
           chosen->wait_start = 0;
         }
 
-        // TIMING DATA - response timing 
+        // TIMING - track first run
         if(chosen->first_run == 0) {
           chosen->first_run_time = getTime();
           chosen->first_run = 1;
@@ -585,7 +585,7 @@ scheduler(void)
         chosen->state = RUNNING;
         c->proc = chosen;
 
-        // TIMING DATA - scheduling timing
+        // TIMING - record scheduling time
         chosen->last_scheduled = getTime();
         chosen->context_switches++;
 
@@ -626,6 +626,11 @@ sched(void)
     panic("sched running");
   if(intr_get())
     panic("sched interruptible");
+
+  // TIMING - update run time when giving up CPU
+  if(p->last_scheduled != 0) {
+    p->total_run_time += getTime() - p->last_scheduled;
+  }
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->scheduler);
@@ -734,7 +739,7 @@ wakeup1(struct proc *p)
     p->state = RUNNABLE;
 
     // TIMING DATA - wait timing data
-      p->wait_start = getTime();
+    p->wait_start = getTime();
   }
 }
 
