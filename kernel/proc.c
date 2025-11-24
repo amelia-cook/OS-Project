@@ -782,7 +782,7 @@ scheduler(void)
     swtch(&c->scheduler, &p->context);
 
     // Process is no longer running for now, compute cruntime progress
-    eevdf_on_run_end(p);
+    // eevdf_on_run_end(p);
 
     c->proc = 0;
     release(&p->lock);
