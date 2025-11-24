@@ -773,7 +773,7 @@ scheduler(void)
     c->proc = p;
 
     // TIMING - record scheduling time
-    p->last_scheduled = getTime();
+    // p->last_scheduled = getTime();
     p->context_switches++;
 
     // EEVDF: process is starting to run, updatate start time
@@ -818,9 +818,9 @@ sched(void)
     panic("sched interruptible");
 
   // TIMING - update run time when giving up CPU
-  if(p->last_scheduled != 0) {
-    p->total_run_time += getTime() - p->last_scheduled;
-  }
+  // if(p->last_scheduled != 0) {
+  //   p->total_run_time += getTime() - p->last_scheduled;
+  // }
 
   intena = mycpu()->intena;
   swtch(&p->context, &mycpu()->scheduler);
