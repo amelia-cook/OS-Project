@@ -364,15 +364,18 @@ exit(int status)
   uint64 cpu_percent = turnaround > 0 ? (p->total_run_time * 100) / turnaround : 0;
   
   // Print metrics for this process
-  printf("\n ***Process Exit Metrics***\n");
-  printf("PID: %d\n", p->pid);
-  printf("Name: %s\n", p->name);
-  printf("Turnaround Time: %d ticks\n", (int)(turnaround/1000));
-  printf("Waiting Time: %d ticks\n", (int)(p->total_wait_time/1000));
-  printf("Response Time: %d ticks\n", (int)(response/1000));
-  printf("Total Run Time: %d ticks\n", (int)(p->total_run_time/1000)); 
-  printf("Context Switches: %d\n", p->context_switches);
-  printf("CPU Share: %d%%\n", (int)cpu_percent);
+  // printf("\n ***Process Exit Metrics***\n");
+  // printf("PID: %d\n", p->pid);
+  // printf("Name: %s\n", p->name);
+  // printf("Turnaround Time: %d ticks\n", (int)(turnaround/1000));
+  // printf("Waiting Time: %d ticks\n", (int)(p->total_wait_time/1000));
+  // printf("Response Time: %d ticks\n", (int)(response/1000));
+  // printf("Total Run Time: %d ticks\n", (int)(p->total_run_time/1000)); 
+  // printf("Context Switches: %d\n", p->context_switches);
+  // printf("CPU Share: %d%%\n", (int)cpu_percent);
+  printf("\n ***Process Exit Metrics***\nPID: %d\nName: %s\nTurnaround Time: %d ticks\nWaiting Time: %d ticks\nResponse Time: %d ticks\nTotal Run Time: %d ticks\nContext Switches: %d\nCPU Share: %d%%\n",
+          p->pid, p->name, (int)(turnaround/1000), (int)(p->total_wait_time/1000),
+        (int)(response/1000), (int)(p->total_run_time/1000), p->context_switches, (int)cpu_percent);
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
