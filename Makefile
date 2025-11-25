@@ -161,6 +161,8 @@ UPROGS=\
 	$U/_long_io\
 	$U/_short_cpu\
 	$U/_long_cpu\
+	$U/_cpu_io\
+	$U/_stress\
 	# $U/_threadtest\
 	# $U/_symlinktest\
 	# $U/_largefiletest\
