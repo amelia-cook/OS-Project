@@ -2,9 +2,6 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/param.h"
-#include "kernel/types.h"
-#include "kernel/stat.h"
-#include "user/user.h"
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
 #include "kernel/syscall.h"
@@ -19,16 +16,16 @@ int main(int argc, char *argv[])
     for (int i = 0; i < nprocs; i++) {
         int pid = fork();
         if (pid < 0) {
-            printf("cpu_long: fork failed\n");
+            printf("cpu_io: fork failed\n");
             exit(1);
         }
         if (pid == 0) {
             for (int i = 0; i < 5; i++) {
-                int fd1 = open("peter-pan.txt", O_RDONLY);
+                int fd1 = open("peter-pan-small.txt", O_RDONLY);
                 char buf;
                 
                 while (read(fd1, &buf, sizeof(buf)) > 0) {
-                    printf("%c", buf);
+                    // printf("%c", buf);
                 }
                 
                 close(fd1);
